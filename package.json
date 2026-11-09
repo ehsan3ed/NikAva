@@ -1,0 +1,18 @@
+{
+  "name": "nikava-open-audio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hum-to-instrument and sheet-music-photo-to-sound modules extracted from Nikava",
+  "license": "MIT",
+  "keywords": ["audio", "pitch-detection", "yin", "omr", "music", "web-audio"],
+  "scripts": {
+    "test": "node hum2instrument/test/run.mjs && node score2sound/test/run.mjs",
+    "test:hum": "node hum2instrument/test/run.mjs",
+    "test:ocr": "node score2sound/test/run.mjs",
+    "serve": "npx --yes serve . -l 3000"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

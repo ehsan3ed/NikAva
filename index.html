@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Nikava open audio tools · صدا برای کسانی که نت نمی‌دانند</title>
+    <meta
+      name="description"
+      content="دو ماژول مستقل و متن‌باز: تبدیل سوت و زمزمه به ساز، و تبدیل عکس نت به صدا. بدون وابستگی، ES Module، MIT."
+    />
+    <style>
+      :root {
+        --bg: #0a1016;
+        --panel: #131d27;
+        --line: #24303e;
+        --text: #e8f0f8;
+        --muted: #93a4b6;
+        --accent: #48e0c0;
+        --accent2: #6aa8ff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: radial-gradient(1100px 560px at 85% -10%, #17293b 0%, var(--bg) 62%);
+        color: var(--text);
+        font-family: system-ui, "Segoe UI", Tahoma, sans-serif;
+        line-height: 1.85;
+      }
+      .wrap { max-width: 940px; margin-inline: auto; padding: 28px 18px 60px; }
+      .badge {
+        display: inline-flex; gap: 8px; align-items: center;
+        font-size: 0.78rem; color: var(--accent);
+        border: 1px solid #1d6f60; background: rgba(72, 224, 192, 0.07);
+        border-radius: 999px; padding: 5px 12px; margin-bottom: 14px;
+      }
+      h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); margin: 0 0 10px; line-height: 1.4; }
+      h1 span { color: var(--accent); }
+      .lead { color: var(--muted); font-size: 1rem; margin: 0 0 26px; max-width: 60ch; }
+      .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+      .card {
+        background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+        padding: 18px; display: flex; flex-direction: column; gap: 10px;
+      }
+      .card h2 { font-size: 1.1rem; margin: 0; }
+      .card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+      .card code { color: var(--accent2); font-size: 0.82rem; direction: ltr; display: inline-block; }
+      .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding-top: 8px; }
+      a.btn {
+        text-decoration: none; color: var(--text); border: 1px solid var(--line);
+        background: #1b2735; border-radius: 12px; padding: 9px 14px; font-size: 0.88rem;
+      }
+      a.btn.primary { background: linear-gradient(135deg, #1f9c86, #2d8fb8); border: 0; font-weight: 700; }
+      section { margin-top: 34px; }
+      h3 { font-size: 1.05rem; margin: 0 0 10px; }
+      ul { margin: 0; padding-inline-start: 20px; color: var(--muted); }
+      li { margin-bottom: 6px; }
+      li b { color: var(--text); }
+      .split { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+      pre {
+        background: #0d1620; border: 1px solid var(--line); border-radius: 12px;
+        padding: 12px; overflow-x: auto; direction: ltr; text-align: left; font-size: 0.82rem;
+        color: #cfe3f5;
+      }
+      footer { margin-top: 40px; color: var(--muted); font-size: 0.82rem; text-align: center; }
+      a { color: var(--accent2); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="badge">● MIT · بدون وابستگی · ES Module</span>
+      <h1>موسیقی برای کسانی که <span>نت نمی‌دانند</span></h1>
+      <p class="lead">
+        دو ماژول کوچک از استودیوی صوتی <b>نیک‌آوا</b> که جدا و عمومی منتشر شده‌اند: یکی سوت و زمزمه را
+        به صدای ساز تبدیل می‌کند، دیگری عکس یک صفحهٔ نت چاپی را می‌خواند و می‌نوازد. کد کامل برنامه
+        عمومی نمی‌شود؛ فقط همین لایهٔ «ترجمهٔ موسیقی» باز است تا با هم بهترش کنیم.
+      </p>
+
+      <div class="grid">
+        <article class="card">
+          <h2>🎤 hum2instrument</h2>
+          <p>
+            زمزمه یا سوت بزن، نت‌ها و گام خودکار تشخیص داده می‌شود و با پیانو، گیتار، فلوت، سیم‌ها،
+            بیس یا ای‌پیانو پخش می‌شود. خروجی WAV هم می‌گیری.
+          </p>
+          <code>humToInstrument(samples, sampleRate, { instrument: "piano" })</code>
+          <div class="actions">
+            <a class="btn primary" href="hum2instrument/demo/index.html">دمو را باز کن</a>
+            <a class="btn" href="hum2instrument/README.md">README</a>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>🎼 score2sound</h2>
+          <p>
+            عکس صفحهٔ نت چاپی را بده: خط حامل، نت‌ها و ارتفاع‌شان خوانده می‌شود و همان ملودی با ساز
+            پخش می‌شود. فعلاً تک‌صدایی و برای صفحات تمیز.
+          </p>
+          <code>imageToNotes(imageData, { clef: "treble", bpm: 96 })</code>
+          <div class="actions">
+            <a class="btn primary" href="score2sound/demo/index.html">دمو را باز کن</a>
+            <a class="btn" href="score2sound/README.md">README</a>
+          </div>
+        </article>
+      </div>
+
+      <section>
+        <h3>چه چیزی باز است و چه چیزی نه</h3>
+        <div class="split">
+          <div class="card">
+            <b>عمومی (همین ریپو)</b>
+            <ul>
+              <li>تشخیص پیچ YIN و تبدیل به نت</li>
+              <li>تشخیص گام و اصلاح نت به داخل گام</li>
+              <li>سینت‌سایزر شش سازه</li>
+              <li>خواندن نت از عکس (خط حامل، نت‌سر، ارتفاع)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <b>خصوصی (اپلیکیشن نیک‌آوا)</b>
+            <ul>
+              <li>موتور ضبط، میکس پادکست و تایم‌لاین</li>
+              <li>زنجیرهٔ تیون وکال و افکت‌ها</li>
+              <li>پوستهٔ موبایل و ذخیره‌سازی پروژه</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h3>اجرا در ۳۰ ثانیه</h3>
+        <pre>git clone &lt;repo&gt; nikava-open-audio
+cd nikava-open-audio
+npm test        # دو تست خودکار، بدون وابستگی
+npm run serve   # سپس /hum2instrument/demo و /score2sound/demo</pre>
+      </section>
+
+      <section>
+        <h3>دنبال همکاری در چه چیزهایی هستیم</h3>
+        <ul>
+          <li><b>نت‌خوانی:</b> ساقه و پرچم نت‌ها، دولا و سه‌لا، علامت‌های عرضی کنار نت</li>
+          <li><b>گام‌های غیرغربی:</b> شور، ماهور، پنتاتونیک برای تشخیص گام</li>
+          <li><b>سازها:</b> ماریمبا، جعبه‌موسیقی، برنجی با کیفیت بهتر</li>
+          <li><b>تست:</b> نمونه‌های واقعی ضبط‌شده و عکس‌های واقعی از نت</li>
+        </ul>
+      </section>
+
+      <footer>
+        ساخته‌شده در بستر <a href="https://pandenik.ir">pandenik.ir</a> · کد تحت مجوز MIT
+      </footer>
+    </div>
+  </body>
+</html>

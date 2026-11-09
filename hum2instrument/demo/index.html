@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>hum2instrument · سوت یا زمزمه را تبدیل به ساز کن</title>
+    <style>
+      :root {
+        --bg: #0b1118;
+        --panel: #141d28;
+        --line: #26313f;
+        --text: #e8f0f8;
+        --muted: #93a4b6;
+        --accent: #48e0c0;
+        --accent-2: #6aa8ff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: radial-gradient(1200px 600px at 80% -10%, #16283a 0%, var(--bg) 60%);
+        color: var(--text);
+        font-family: system-ui, "Segoe UI", Tahoma, sans-serif;
+        padding: 18px 16px 40px;
+      }
+      header { max-width: 780px; margin: 0 auto 18px; }
+      h1 { font-size: 1.4rem; margin: 0 0 6px; }
+      p.lead { color: var(--muted); margin: 0; line-height: 1.7; font-size: 0.95rem; }
+      main { max-width: 780px; margin: 0 auto; display: grid; gap: 14px; }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px;
+      }
+      .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      button, select, .file {
+        font: inherit;
+        color: var(--text);
+        background: #1b2735;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 14px;
+        cursor: pointer;
+        min-height: 44px;
+      }
+      button.primary { background: linear-gradient(135deg, #1f9c86, #2d8fb8); border: 0; font-weight: 700; }
+      button:disabled { opacity: 0.45; cursor: not-allowed; }
+      button.rec { background: #7a2530; border-color: #a83545; }
+      button.rec.on { background: #c33; animation: pulse 1s infinite; }
+      @keyframes pulse { 50% { opacity: 0.6; } }
+      .file { display: inline-flex; align-items: center; }
+      .file input { display: none; }
+      .status { color: var(--muted); font-size: 0.9rem; min-height: 1.2em; }
+      canvas { width: 100%; height: 190px; display: block; border-radius: 12px; background: #0d1620; }
+      .pill { font-size: 0.85rem; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+      .notes { display: flex; flex-wrap: wrap; gap: 6px; }
+      .note { font-size: 0.8rem; background: #182634; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+      .note b { color: var(--accent); }
+      .hint { color: var(--muted); font-size: 0.82rem; line-height: 1.7; margin: 0; }
+      footer { max-width: 780px; margin: 22px auto 0; color: var(--muted); font-size: 0.8rem; text-align: center; }
+      a { color: var(--accent-2); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>سوت بزن یا زمزمه کن، ساز تحویل بگیر 🎹</h1>
+      <p class="lead">
+        بدون دانش نت و نت‌نویسی: فقط ۵ تا ۱۵ ثانیه زمزمه یا سوت بزن. برنامه گام (تنالیته) را خودش تشخیص
+        می‌دهد، نتها را بیرون می‌کشد و با ساز انتخابی‌ات پخش می‌کند.
+      </p>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="row">
+          <button id="rec" class="rec" type="button">● شروع ضبط</button>
+          <label class="file">
+            فایل صوتی
+            <input id="file" type="file" accept="audio/*" />
+          </label>
+          <span id="status" class="status">آماده</span>
+        </div>
+        <p class="hint">
+          در محیط ساکت و بدون موسیقی پس‌زمینه ضبط کن. یک نت را کشیده نگه دار (حداقل ۰.۱ ثانیه) تا درست
+          شناسایی شود.
+        </p>
+      </section>
+
+      <section class="card">
+        <div class="row" style="justify-content: space-between">
+          <span class="pill" id="keyPill">گام: —</span>
+          <span class="pill" id="countPill">۰ نت</span>
+        </div>
+        <canvas id="roll" width="1440" height="380" aria-label="نمودار نت‌های شناسایی‌شده"></canvas>
+        <div class="notes" id="noteList"></div>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <select id="instrument" aria-label="ساز"></select>
+          <button id="play" class="primary" type="button" disabled>▶ پخش</button>
+          <button id="stop" type="button" disabled>■ توقف</button>
+          <button id="download" type="button" disabled>⬇ دانلود WAV</button>
+          <span id="renderStatus" class="status"></span>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      hum2instrument — ماژول مستقل و MIT. برای همکاری به <a href="../README.md">README</a> سر بزن.
+    </footer>
+
+    <script type="module">
+      import {
+        analyzeHum,
+        renderNotes,
+        encodeWav,
+        decodeToMono,
+        INSTRUMENT_NAMES,
+        midiToHz,
+      } from "../src/index.js";
+
+      const $ = (id) => document.getElementById(id);
+      const statusEl = $("status");
+      const renderStatusEl = $("renderStatus");
+      const recBtn = $("rec");
+      const playBtn = $("play");
+      const stopBtn = $("stop");
+      const downloadBtn = $("download");
+      const instrumentSel = $("instrument");
+      const roll = $("roll");
+
+      for (const name of INSTRUMENT_NAMES) {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = name;
+        instrumentSel.append(option);
+      }
+
+      let state = { notes: [], key: null, audio: null, sampleRate: 44100, song: null };
+      let recorder = null;
+      let chunks = [];
+      let audioCtx = null;
+      let source = null;
+
+      const ctx = () => (audioCtx ||= new (window.AudioContext || window.webkitAudioContext)());
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function drawRoll(notes) {
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const width = roll.clientWidth * dpr;
+        const height = 190 * dpr;
+        roll.width = width;
+        roll.height = height;
+        const g = roll.getContext("2d");
+        g.clearRect(0, 0, width, height);
+        if (!notes.length) return;
+
+        const end = Math.max(...notes.map((n) => n.start + n.duration));
+        const minMidi = Math.min(...notes.map((n) => n.midi)) - 1;
+        const maxMidi = Math.max(...notes.map((n) => n.midi)) + 1;
+        const pitchSpan = Math.max(6, maxMidi - minMidi);
+
+        g.strokeStyle = "rgba(120,155,190,0.14)";
+        for (let i = 0; i <= pitchSpan; i++) {
+          const y = (i / pitchSpan) * height;
+          g.beginPath();
+          g.moveTo(0, y);
+          g.lineTo(width, y);
+          g.stroke();
+        }
+
+        for (const n of notes) {
+          const x = (n.start / end) * width;
+          const w = Math.max(4 * dpr, (n.duration / end) * width);
+          const y = height - ((n.midi - minMidi) / pitchSpan) * height;
+          g.fillStyle = "#48e0c0";
+          g.globalAlpha = 0.9;
+          g.fillRect(x, y - 6 * dpr, w, 12 * dpr);
+          g.globalAlpha = 1;
+        }
+      }
+
+      function drawNotes(notes) {
+        $("noteList").innerHTML = notes
+          .map((n) => `<span class="note"><b>${n.name}</b> ${n.duration.toFixed(2)}s</span>`)
+          .join("");
+        $("countPill").textContent = `${notes.length} نت`;
+      }
+
+      function analyze(samples, sampleRate) {
+        setStatus("در حال تحلیل…");
+        const started = performance.now();
+        const { notes, key } = analyzeHum(samples, sampleRate);
+        const ms = Math.round(performance.now() - started);
+        state.notes = notes;
+        state.key = key;
+        state.sampleRate = sampleRate;
+        state.song = samples;
+        $("keyPill").textContent = `گام: ${key.name}`;
+        drawRoll(notes);
+        drawNotes(notes);
+        const enabled = notes.length > 0;
+        playBtn.disabled = !enabled;
+        stopBtn.disabled = !enabled;
+        downloadBtn.disabled = !enabled;
+        setStatus(
+          enabled ? `${notes.length} نت در ${ms} میلی‌ثانیه پیدا شد` : "نتی پیدا نشد — بلندتر و کشیده‌تر بزن"
+        );
+      }
+
+      async function ensureAudioDecoded(blob) {
+        const buffer = await blob.arrayBuffer();
+        const { samples, sampleRate } = await decodeToMono(buffer);
+        analyze(samples, sampleRate);
+      }
+
+      recBtn.addEventListener("click", async () => {
+        if (recorder && recorder.state === "recording") {
+          recorder.stop();
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+          });
+          chunks = [];
+          recorder = new MediaRecorder(stream);
+          recorder.ondataavailable = (event) => event.data.size && chunks.push(event.data);
+          recorder.onstop = async () => {
+            stream.getTracks().forEach((track) => track.stop());
+            recBtn.classList.remove("on");
+            recBtn.textContent = "● شروع ضبط";
+            await ensureAudioDecoded(new Blob(chunks, { type: recorder.mimeType }));
+          };
+          recorder.start();
+          recBtn.classList.add("on");
+          recBtn.textContent = "■ توقف ضبط";
+          setStatus("در حال ضبط…");
+        } catch (error) {
+          setStatus("دسترسی به میکروفون نبود: " + error.message);
+        }
+      });
+
+      $("file").addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        setStatus("در حال خواندن فایل…");
+        await ensureAudioDecoded(file);
+      });
+
+      async function renderCurrent() {
+        renderStatusEl.textContent = "در حال ساخت صدا…";
+        const instrument = instrumentSel.value;
+        const audio = renderNotes(state.notes, { instrument, sampleRate: state.sampleRate });
+        state.audio = audio;
+        renderStatusEl.textContent = "آماده پخش";
+        return audio;
+      }
+
+      playBtn.addEventListener("click", async () => {
+        stopBtn.disabled = false;
+        const audio = await renderCurrent();
+        const ac = ctx();
+        if (source) source.stop();
+        const buffer = ac.createBuffer(1, Math.max(1, audio.length), state.sampleRate);
+        buffer.copyToChannel(audio, 0);
+        source = ac.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ac.destination);
+        source.start();
+      });
+
+      stopBtn.addEventListener("click", () => {
+        if (source) source.stop();
+      });
+      stopBtn.disabled = true;
+      playBtn.disabled = true;
+      downloadBtn.disabled = true;
+
+      downloadBtn.addEventListener("click", async () => {
+        const audio = state.audio || (await renderCurrent());
+        const wav = encodeWav(audio, state.sampleRate);
+        const url = URL.createObjectURL(new Blob([wav], { type: "audio/wav" }));
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `hum-${instrumentSel.value}.wav`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      });
+
+      instrumentSel.addEventListener("change", () => {
+        state.audio = null;
+        if (state.notes.length) renderCurrent();
+      });
+
+      window.addEventListener("resize", () => drawRoll(state.notes));
+
+      // Expose for quick debugging / integration tests.
+      window.hum2instrument = { analyzeHum, renderNotes, encodeWav, state, midiToHz };
+    </script>
+  </body>
+</html>
